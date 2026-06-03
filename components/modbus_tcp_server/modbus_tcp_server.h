@@ -7,7 +7,6 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
-#include "esphome/components/modbus/modbus_definitions.h"
 
 
 namespace esphome::modbus_tcp_server {
@@ -58,7 +57,6 @@ class ModbusTcpServerComponent : public Component {
   // Dense register data
   std::map<uint8_t, std::map<ModbusPrimaryTypes, std::map<uint16_t, uint16_t>>> regdata_;
 
-  std::map<uint8_t, std::map<esphome::modbus::ModbusRegisterType, std::map<uint16_t, uint16_t>>> regdatat_;
   // TCP server
   int server_fd_{-1};
   Client clients_[MAX_CLIENTS];
