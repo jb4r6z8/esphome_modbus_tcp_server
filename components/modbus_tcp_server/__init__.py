@@ -5,7 +5,7 @@ from esphome.components import modbus
 
 MULTI_CONF = True
 CODEOWNERS = []
-AUTO_LOAD = ["MODBUS"]
+AUTO_LOAD = ["modbus"]
 
 
 modbus_tcp_server_ns = cg.esphome_ns.namespace("modbus_tcp_server")
