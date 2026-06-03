@@ -7,6 +7,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
+#include "esphome/components/modbus/modbus_definitions.h"
 
 
 namespace esphome::modbus_tcp_server {
