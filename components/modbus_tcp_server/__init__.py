@@ -7,6 +7,7 @@ from esphome.components import (
 
 MULTI_CONF = True
 CODEOWNERS = []
+DEPENDENCIES = ["modbus"]
 
 
 
