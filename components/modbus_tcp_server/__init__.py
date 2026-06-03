@@ -1,11 +1,11 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
-from esphome.components import modbus
+
 
 MULTI_CONF = True
 CODEOWNERS = []
-AUTO_LOAD = ["modbus","uart"]
+
 
 
 modbus_tcp_server_ns = cg.esphome_ns.namespace("modbus_tcp_server")
