@@ -40,6 +40,8 @@ uint16_t ModbusTcpServerComponent::get_register_(uint8_t uid, ModbusPrimaryTypes
     return 0;
   }
 }
+// Generic public Modbus setter
+
 
 // Victron EM24
 void ModbusTcpServerComponent::DvcEM24_Propagate(uint8_t uid, const char *serial_number) {
