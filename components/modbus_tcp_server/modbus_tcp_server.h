@@ -58,7 +58,7 @@ class ModbusTcpServerComponent : public Component {
   // Dense register data
   std::map<uint8_t, std::map<ModbusPrimaryTypes, std::map<uint16_t, uint16_t>>> regdata_;
 
-  std::map<uint8_t, std::map<ModbusRegisterType, std::map<uint16_t, uint16_t>>> regdatat_;
+  std::map<uint8_t, std::map<esphome::modbus::ModbusRegisterType, std::map<uint16_t, uint16_t>>> regdatat_;
   // TCP server
   int server_fd_{-1};
   Client clients_[MAX_CLIENTS];
