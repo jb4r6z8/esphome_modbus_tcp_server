@@ -7,7 +7,7 @@ from esphome.components import (
 
 MULTI_CONF = True
 CODEOWNERS = []
-AUTO_LOAD = ["uart"]
+AUTO_LOAD = ["uart", "modbus"]
 
 
 
