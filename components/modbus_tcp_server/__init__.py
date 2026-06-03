@@ -1,13 +1,9 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
-from esphome.components import (
-    modbus,
-)
 
 MULTI_CONF = True
 CODEOWNERS = []
-AUTO_LOAD = ["uart", "modbus"]
 
 
 
