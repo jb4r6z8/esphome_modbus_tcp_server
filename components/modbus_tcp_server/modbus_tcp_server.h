@@ -7,7 +7,6 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
-#include "esphome/components/modbus/modbus_definitions.h"
 
 
 
