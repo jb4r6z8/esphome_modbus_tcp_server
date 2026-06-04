@@ -45,64 +45,64 @@ uint16_t ModbusTcpServerComponent::get_register_(uint8_t uid, ModbusPrimaryTypes
 
 // Victron EM24
 void ModbusTcpServerComponent::DvcEM24_Propagate(uint8_t uid, const char *serial_number) {
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x000B ] = 1651;    // 0x000B Model ID register (probed by carlo_gavazzi.py)
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x0033] = 500 ;    // 0x0033 Frequency: 50.0 Hz (Reg_u16, /10 Hz)
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0x000B ] = 1651;    // 0x000B Model ID register (probed by carlo_gavazzi.py)
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0033] = 500 ;    // 0x0033 Frequency: 50.0 Hz (Reg_u16, /10 Hz)
 
-  write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x0000 , 2400); // 0x0033 L1 Voltage (Reg_int32 / 10)
-  write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x0002 , 2400); // 0x0002 L2 Voltage (Reg_int32 / 10)
-  write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x0004 , 2400); // 0x0004 L3 Voltage (Reg_int32 / 10)
+  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0000 , 2400); // 0x0033 L1 Voltage (Reg_int32 / 10)
+  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0002 , 2400); // 0x0002 L2 Voltage (Reg_int32 / 10)
+  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0004 , 2400); // 0x0004 L3 Voltage (Reg_int32 / 10)
 
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x0302] = 0x0100;  // 0x0302 HW version 1.0.0
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x0304] = 0x0100;  // 0x0304 FW version 1.0.0
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x1002] = 0;       // 0x1002 PhaseConfig = 3P --> 0, 1P --> 3
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0xa000] = 7;       // 0xa000 Application = H mode
-  regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0xa100] = 3;       // 0xa100 SwitchPos = '1' (active kWh, both directions)
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0302] = 0x0100;  // 0x0302 HW version 1.0.0
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0304] = 0x0100;  // 0x0304 FW version 1.0.0
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0x1002] = 0;       // 0x1002 PhaseConfig = 3P --> 0, 1P --> 3
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0xa000] = 7;       // 0xa000 Application = H mode
+  regdata_[uid][ModbusPrimaryTypes::HOLDING][0xa100] = 3;       // 0xa100 SwitchPos = '1' (active kWh, both directions)
 
   for (uint8_t i = 0; i < 7; i++) {
     uint8_t hi = (serial_number[i * 2]     != '\0') ? (uint8_t)serial_number[i * 2]     : '0';
     uint8_t lo = (serial_number[i * 2 + 1] != '\0') ? (uint8_t)serial_number[i * 2 + 1] : '0';
-    regdata_[uid][ModbusPrimaryTypes::HOLDINGREGISTER][0x5000 + i] = ((uint16_t)hi << 8) | lo;
+    regdata_[uid][ModbusPrimaryTypes::HOLDING][0x5000 + i] = ((uint16_t)hi << 8) | lo;
   }
   ESP_LOGD(TAG, "EM24 Victron Populated: s%", serial_number);
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Power(uint8_t uid, uint8_t phase, float value, bool calc_current ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid,ModbusPrimaryTypes::HOLDINGREGISTER, 0x12 + ( phase - 1 ) * 2, value * 10.0f );
-    write_int32_(uid,ModbusPrimaryTypes::HOLDINGREGISTER, 0x28, 
-        read_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x12 + 0) 
-      + read_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x12 + 2) 
-      + read_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x12 + 4));
-    if ( calc_current and read_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x00 + ( phase - 1 ) * 2) != 0 ) {
-      DvcEM24_Upd_Current(uid, phase, value / read_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER, 0x00 + ( phase - 1 ) * 2) * 10.0f );
+    write_int32_(uid,ModbusPrimaryTypes::HOLDING, 0x12 + ( phase - 1 ) * 2, value * 10.0f );
+    write_int32_(uid,ModbusPrimaryTypes::HOLDING, 0x28, 
+        read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 0) 
+      + read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 2) 
+      + read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 4));
+    if ( calc_current and read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x00 + ( phase - 1 ) * 2) != 0 ) {
+      DvcEM24_Upd_Current(uid, phase, value / read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x00 + ( phase - 1 ) * 2) * 10.0f );
     }
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Current(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER,0x0C + ( phase - 1 ) * 2, value * 1000.0f);
+    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x0C + ( phase - 1 ) * 2, value * 1000.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Voltage(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER,0x00 + ( phase - 1 ) * 2, value * 10.0f);
+    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x00 + ( phase - 1 ) * 2, value * 10.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Import_Phases(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER,0x40 + ( phase - 1 ) * 2, value * 10.0f);
+    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x40 + ( phase - 1 ) * 2, value * 10.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Import_Total(uint8_t uid, float value ) {
-  write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER,0x34 , value * 10.0f);
+  write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x34 , value * 10.0f);
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Export_Total(uint8_t uid, float value ) {
-  write_int32_(uid, ModbusPrimaryTypes::HOLDINGREGISTER,0x4E , value * 10.0f);
+  write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x4E , value * 10.0f);
 }
 
 
@@ -288,7 +288,7 @@ void ModbusTcpServerComponent::handle_frame_(Client &c, uint16_t frame_len) {
     }
 
     // Build response using sparse register lookup -- returns 0 for any unknown address
-    ModbusPrimaryTypes mbpt = ( fc == 0x03 ? ModbusPrimaryTypes::HOLDINGREGISTER : ModbusPrimaryTypes::INPUTREGISTER );
+    ModbusPrimaryTypes mbpt = ( fc == 0x03 ? ModbusPrimaryTypes::HOLDING : ModbusPrimaryTypes::READ );
     uint8_t pdu[2 + 125 * 2];
     pdu[0] = fc;
     pdu[1] = static_cast<uint8_t>(count * 2);
