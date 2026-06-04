@@ -24,11 +24,13 @@ struct Client {
   uint32_t last_recv_ms{0};
 };
 
+// 4.3 MODBUS Data model
 enum class ModbusPrimaryTypes : uint8_t {
-  DISCRETEINPUT = 0x1,
-  COIL = 0x2,
-  INPUTREGISTER = 0x3,
-  HOLDINGREGISTER =0x4,
+  CUSTOM = 0x01,
+  COIL = 0x01,
+  DISCRETE_INPUT = 0x02,
+  HOLDING = 0x03,
+  READ =0x04,
 };
 
 class ModbusTcpServerComponent : public Component {
