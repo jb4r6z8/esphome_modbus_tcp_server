@@ -17,13 +17,6 @@ static const char *const TAG = "modbus_tcp_server";
 
 // ---------- helpers ----------
 
-// Write signed int32 as two little-endian uint16 registers (Reg_s32l: low word at idx)
-void ModbusTcpServerComponent::write_int32_(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t idx, float value) {
-  int32_t value_raw = static_cast<int32_t>(value + (value >= 0 ? 0.5f : -0.5f));
-  regdata_[uid][mbpt][idx]      = static_cast<uint16_t>(static_cast<uint32_t>(value_raw) & 0xFFFF);  // low word first
-  regdata_[uid][mbpt][idx + 1]  = static_cast<uint16_t>(static_cast<uint32_t>(value_raw) >> 16);     // high word second
-}
-
 // Read signed int32 as two little-endian uint16 registers (Reg_s32l: low word at idx)
 float ModbusTcpServerComponent::read_int32_(uint8_t uid,ModbusPrimaryTypes mbpt, uint16_t idx) {
   uint32_t value_combined = ((uint32_t)get_register_(uid,mbpt,idx + 1) << 16) | get_register_(uid,mbpt,idx);
@@ -41,16 +34,54 @@ uint16_t ModbusTcpServerComponent::get_register_(uint8_t uid, ModbusPrimaryTypes
   }
 }
 // Generic public Modbus setter
-
+void ModbusTcpServerComponent::MBR_Upd(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t idx, ModbusValueType mbvt, float value_f) {
+  int64_t value = static_cast<int64_t>(value_f + (value_f >= 0 ? 0.5f : -0.5f));
+  switch (mbvt) {
+    case ModbusValueType::U_WORD:
+    case ModbusValueType::S_WORD:
+      regdata_[uid][mbpt][idx] = (value & 0xFFFF);
+      break;
+    case ModbusValueType::U_DWORD:
+    case ModbusValueType::S_DWORD:
+    case ModbusValueType::FP32:
+      regdata_[uid][mbpt][idx] = ((value & 0xFFFF0000) >> 16);
+      regdata_[uid][mbpt][idx + 1] = (value & 0xFFFF);
+      break;
+    case ModbusValueType::U_DWORD_R:
+    case ModbusValueType::S_DWORD_R:
+    case ModbusValueType::FP32_R:
+      regdata_[uid][mbpt][idx] = (value & 0xFFFF);
+      regdata_[uid][mbpt][idx + 1] = ((value & 0xFFFF0000) >> 16);
+      break;
+    case ModbusValueType::U_QWORD:
+    case ModbusValueType::S_QWORD:
+      regdata_[uid][mbpt][idx] = ((value & 0xFFFF000000000000) >> 48);
+      regdata_[uid][mbpt][idx + 1] = ((value & 0xFFFF00000000) >> 32);
+      regdata_[uid][mbpt][idx + 2] = ((value & 0xFFFF0000) >> 16);
+      regdata_[uid][mbpt][idx + 2] = (value & 0xFFFF);
+      break;
+    case ModbusValueType::U_QWORD_R:
+    case ModbusValueType::S_QWORD_R:
+      regdata_[uid][mbpt][idx] = (value & 0xFFFF);
+      regdata_[uid][mbpt][idx + 1] = ((value & 0xFFFF0000) >> 16);
+      regdata_[uid][mbpt][idx + 2] = ((value & 0xFFFF00000000) >> 32);
+      regdata_[uid][mbpt][idx + 3] = ((value & 0xFFFF000000000000) >> 48);
+      break;
+    default:
+      ESP_LOGE(TAG, "Invalid data type for modbus number to payload conversion: %d", static_cast<uint16_t>(mbvt));
+      break;
+  } 
+}
 
 // Victron EM24
 void ModbusTcpServerComponent::DvcEM24_Propagate(uint8_t uid, const char *serial_number) {
   regdata_[uid][ModbusPrimaryTypes::HOLDING][0x000B ] = 1651;    // 0x000B Model ID register (probed by carlo_gavazzi.py)
   regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0033] = 500 ;    // 0x0033 Frequency: 50.0 Hz (Reg_u16, /10 Hz)
 
-  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0000 , 2400); // 0x0033 L1 Voltage (Reg_int32 / 10)
-  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0002 , 2400); // 0x0002 L2 Voltage (Reg_int32 / 10)
-  write_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x0004 , 2400); // 0x0004 L3 Voltage (Reg_int32 / 10)
+
+  DvcEM24_Upd_Voltage(uid, 1, 240 );
+  DvcEM24_Upd_Voltage(uid, 2, 240 );
+  DvcEM24_Upd_Voltage(uid, 3, 240 );
 
   regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0302] = 0x0100;  // 0x0302 HW version 1.0.0
   regdata_[uid][ModbusPrimaryTypes::HOLDING][0x0304] = 0x0100;  // 0x0304 FW version 1.0.0
@@ -68,8 +99,9 @@ void ModbusTcpServerComponent::DvcEM24_Propagate(uint8_t uid, const char *serial
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Power(uint8_t uid, uint8_t phase, float value, bool calc_current ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid,ModbusPrimaryTypes::HOLDING, 0x12 + ( phase - 1 ) * 2, value * 10.0f );
-    write_int32_(uid,ModbusPrimaryTypes::HOLDING, 0x28, 
+    MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x12 + ( phase - 1 ) * 2 , ModbusValueType::S_DWORD_R, value * 10.0f);
+    
+    MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x28, ModbusValueType::S_DWORD_R,
         read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 0) 
       + read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 2) 
       + read_int32_(uid, ModbusPrimaryTypes::HOLDING, 0x12 + 4));
@@ -81,28 +113,28 @@ void ModbusTcpServerComponent::DvcEM24_Upd_Power(uint8_t uid, uint8_t phase, flo
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Current(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x0C + ( phase - 1 ) * 2, value * 1000.0f);
+    MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x0C + ( phase - 1 ) * 2 , ModbusValueType::S_DWORD_R, value * 1000.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Voltage(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x00 + ( phase - 1 ) * 2, value * 10.0f);
+    MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x00 + ( phase - 1 ) * 2 , ModbusValueType::S_DWORD_R, value * 10.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Import_Phases(uint8_t uid, uint8_t phase, float value ) {
   if ( phase >=1 and phase <=3 ) {
-    write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x40 + ( phase - 1 ) * 2, value * 10.0f);
+    MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x40 + ( phase - 1 ) * 2 , ModbusValueType::S_DWORD_R, value * 10.0f);
   }
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Import_Total(uint8_t uid, float value ) {
-  write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x34 , value * 10.0f);
+  MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x34 , ModbusValueType::S_DWORD_R, value * 10.0f);
 }
 
 void ModbusTcpServerComponent::DvcEM24_Upd_Energy_Export_Total(uint8_t uid, float value ) {
-  write_int32_(uid, ModbusPrimaryTypes::HOLDING,0x4E , value * 10.0f);
+  MBR_Upd(uid, ModbusPrimaryTypes::HOLDING, 0x4E , ModbusValueType::S_DWORD_R, value * 10.0f);
 }
 
 
