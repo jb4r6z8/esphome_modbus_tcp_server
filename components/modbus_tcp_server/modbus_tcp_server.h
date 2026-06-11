@@ -24,13 +24,31 @@ struct Client {
   uint32_t last_recv_ms{0};
 };
 
-// 4.3 MODBUS Data model
+// MODBUS Data model
 enum class ModbusPrimaryTypes : uint8_t {
-  CUSTOM = 0x01,
+  CUSTOM = 0x00,
   COIL = 0x01,
   DISCRETE_INPUT = 0x02,
   HOLDING = 0x03,
   READ =0x04,
+};
+
+// MODBUS Value Type
+enum class ModbusValueType : uint8_t {
+  RAW = 0x00,     // variable length
+  U_WORD = 0x1,   // 1 Register unsigned
+  U_DWORD = 0x2,  // 2 Registers unsigned
+  S_WORD = 0x3,   // 1 Register signed
+  S_DWORD = 0x4,  // 2 Registers signed
+  BIT = 0x5,
+  U_DWORD_R = 0x6,  // 2 Registers unsigned
+  S_DWORD_R = 0x7,  // 2 Registers unsigned
+  U_QWORD = 0x8,
+  S_QWORD = 0x9,
+  U_QWORD_R = 0xA,
+  S_QWORD_R = 0xB,
+  FP32 = 0xC,
+  FP32_R = 0xD
 };
 
 class ModbusTcpServerComponent : public Component {
@@ -41,6 +59,9 @@ class ModbusTcpServerComponent : public Component {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
 
+  void set_port(uint16_t port) { port_ = port; }
+  void MBR_Upd(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t idx, ModbusValueType mbvt, float value);
+
   void DvcEM24_Propagate(uint8_t uid, const char *serial_number);
   void DvcEM24_Upd_Power(uint8_t uid, uint8_t phase, float value, bool calc_current = true );
   void DvcEM24_Upd_Current(uint8_t uid, uint8_t phase, float value);
@@ -48,8 +69,6 @@ class ModbusTcpServerComponent : public Component {
   void DvcEM24_Upd_Energy_Import_Phases(uint8_t uid, uint8_t phase, float value );
   void DvcEM24_Upd_Energy_Import_Total(uint8_t uid, float value );
   void DvcEM24_Upd_Energy_Export_Total(uint8_t uid, float value );
-
-  void set_port(uint16_t port) { port_ = port; }
 
  protected:
   // TCP Server Port
@@ -74,8 +93,6 @@ class ModbusTcpServerComponent : public Component {
   // Sparse register lookup: returns value for any EM24 address, including out-of-dense-range
   uint16_t get_register_(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t addr);
   
-  // Write signed int32 as two little-endian uint16 registers (Reg_s32l: low word at idx)
-  void write_int32_(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t idx, float value);
   // Read signed int32 as two little-endian uint16 registers (Reg_s32l: low word at idx)
   float read_int32_(uint8_t uid, ModbusPrimaryTypes mbpt, uint16_t idx);
 
